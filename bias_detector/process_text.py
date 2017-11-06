@@ -28,6 +28,6 @@ for i in range(1,4):
                 if i == 0:
                     continue
                 publication = line[3]
-                content = line[-1]
+                content = line[-1].replace('\n', ' ')
                 bias = news_sources[publication]
                 fw.write(str(bias) + "\t" + content + "\n")
