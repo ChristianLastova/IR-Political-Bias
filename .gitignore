@@ -1,1 +1,2 @@
-articles*
+bias_detector/**/articles*
+.DS_Store
