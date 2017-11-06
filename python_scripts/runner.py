@@ -40,10 +40,10 @@ def login(webdriver, email, password):
 def main():
 	#array of tuples (username, password, queryset)
 	users = []
-	users.append("joes9358", "controluser", "neutral.txt")
-	users.append(("janetheplummer123", "controltwo", "neutral.txt"))
-	users.append("js4425947", "liberaluser", "liberal.txt")
-	users.append("jplum713", "conservativeuser", "conservative.txt")
+	users.append(("joes9358", "controluser", "queries_controversial.txt"))
+	users.append(("janetheplummer123", "controltwo", "queries_controversial.txt"))
+	users.append(("js4425947", "liberaluser", "queries_liberal.txt"))
+	users.append(("jplum713", "conservativeuser", "queries_conservative.txt"))
 
 	for u in users:
 		queries = getQueriesFromFile("queries/" + u[2])
@@ -54,7 +54,10 @@ def main():
 			googleSearch(driver, q)
 			time.sleep(5)
 
-		driver.Quit()
+		driver.quit()
+		time.sleep(5)
+
+	driver.quit()
 
 if __name__ == '__main__':
 	main()
