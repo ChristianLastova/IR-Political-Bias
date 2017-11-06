@@ -1,12 +1,15 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 import time
+import random
 
 def getQueriesFromFile(filename):
 	with open(filename) as f:
 		content = f.readlines()
 
 	queries = [x.strip() for x in content]
+
+	random.shuffle(queries)
 
 	return queries
 
@@ -35,13 +38,23 @@ def login(webdriver, email, password):
 
 
 def main():
-	queries = getQueriesFromFile("queries/liberal.txt")
+	#array of tuples (username, password, queryset)
+	users = []
+	users.append("joes9358", "controluser", "neutral.txt")
+	users.append(("janetheplummer123", "controltwo", "neutral.txt"))
+	users.append("js4425947", "liberaluser", "liberal.txt")
+	users.append("jplum713", "conservativeuser", "conservative.txt")
 
-	driver = webdriver.Firefox()
+	for u in users:
+		queries = getQueriesFromFile("queries/" + u[2])
+		driver = webdriver.Firefox()
 
-	login(driver, "janetheplummer123", "controltwo")
-	for q in queries:
-		googleSearch(driver, q)
+		login(driver, u[0], u[1])
+		for q in queries:
+			googleSearch(driver, q)
+			time.sleep(5)
+
+		driver.Quit()
 
 if __name__ == '__main__':
 	main()
