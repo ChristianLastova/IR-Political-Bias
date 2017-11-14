@@ -2,6 +2,7 @@ from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+import sys
 import random
 import requests
 from bs4 import BeautifulSoup
@@ -23,7 +24,7 @@ def googleSearch(webdriver, query):
 	searchBox.send_keys(query)
 	searchBox.send_keys(Keys.ENTER)
 
-def googleSearchAndClick(webdriver, query):
+def googleSearchAndClick(webdriver, query, bias='2'):
 	webdriver.get("http://google.com")
 	searchBox = webdriver.find_element_by_name("q")
 	searchBox.send_keys(query)
@@ -33,30 +34,69 @@ def googleSearchAndClick(webdriver, query):
 
 	clf = joblib.load('bias_detector/political_bias_classifier_optimized.pkl')
 
-	try:
-		link = webdriver.find_element_by_xpath("//*[@id='rso']/div[1]/div/div/div/h3/a")
-		print("link: " + link.text)
-		url = webdriver.find_element_by_xpath("//*[@id='rso']/div[1]/div/div/div/div/div/div[1]/cite")
-		print("url: " + url.text)
-		ActionChains(webdriver).move_to_element(link).click().perform()
-		#download the page
-		page = requests.get(url.text)
-		#use BeautifulSoup to parse the html content of the page and extract the text
-		soup = BeautifulSoup(page.content, 'html.parser')
-		text = soup.get_text()
-		clf.predict([text])
-		print("--------------------------------")
-	except:
+	link = None
+	url = None
+
+	for i in range(1,6):
+
 		try:
-			link = webdriver.find_element_by_xpath("//*[@id='rso']/div/div/div[1]/div/div/h3/a")
+			xpath_link = "//*[@id='rso']/div[" + str(i) + "]/div/div/div/h3/a"
+			xpath_url = "//*[@id='rso']/div[" + str(i) + "]/div/div/div/div/div/div[" + str(i) + "]/cite"
+			link = webdriver.find_element_by_xpath(xpath_link)
 			print("link: " + link.text)
-			url = webdriver.find_element_by_xpath("//*[@id='rso']/div/div/div[1]/div/div/div/div/div/cite")
+			url = webdriver.find_element_by_xpath(xpath_url)
 			print("url: " + url.text)
-			ActionChains(webdriver).move_to_element(link).click().perform()
-			time.sleep(3)
 			print("--------------------------------")
 		except:
-			print("didn't find link")
+			print("Didn't find link in first spot, trying again...")
+
+		try:
+			xpath_link = "//*[@id='rso']/div/div/div[" + str(i) + "]/div/div/h3/a"
+			xpath_url = "//*[@id='rso']/div/div/div[" + str(i) + "]/div/div/div/div/div/cite"
+			link = webdriver.find_element_by_xpath(xpath_link)
+			print("link: " + link.text)
+			url = webdriver.find_element_by_xpath(xpath_url)
+			print("url: " + url.text)
+			print("--------------------------------")
+		except:
+			print("didn't find link in second spot, skipping...")
+			print("--------------------------------")
+			return
+
+		try:
+			#if user is control, click the link, otherwise classify
+			if bias is '2':
+				ActionChains(webdriver).move_to_element(link).click().perform()
+				print("clicked")
+				time.sleep(2)
+				webdriver.back()
+				time.sleep(2)
+			else:
+				#download the page
+				page = requests.get(url.text)
+				print("getting url: " + url.text)
+				#use BeautifulSoup to parse the html content of the page and extract the text
+				soup = BeautifulSoup(page.content, 'html.parser')
+				text = "".join([p.text for p in soup.find_all("p")])
+				prediction = clf.predict([text])
+				print("prediction: " + prediction)
+				#check to see if the bias of the link matches the user's bias
+				#1 is conservative, 0 is liberal
+				if bias == prediction:
+					ActionChains(webdriver).move_to_element(link).click().perform()
+					print("clicked")
+					time.sleep(2)
+					webdriver.back()
+					time.sleep(2)
+				else:
+					print("incorrect bias, not clicking link")
+
+			print("--------------------------------")
+		except:
+			print("error: " + str(sys.exc_info()[0]))
+			print("--------------------------------")
+
+
 		
 
 def login(webdriver, email, password):
@@ -75,18 +115,13 @@ def login(webdriver, email, password):
 	password_field.send_keys(Keys.ENTER)
 	time.sleep(5)
 
-
-
-def main():
-
-	#array of tuples (username, password, queryset)
+def without_click_test():
+	#array of tuples (username, password, queryset, bias)
 	users = []
-	#users.append(("joes9358", "controluser", "queries_controversial.txt"))
-	#users.append(("janetheplummer123", "controltwo", "queries_controversial.txt"))
-	#users.append(("js4425947", "liberaluser", "queries_liberal.txt"))
-	#users.append(("jplum713", "conservativeuser", "queries_conservative.txt"))
-
-	users.append(("moreese978", "controlclick", "queries_controversial.txt"))
+	users.append(("joes9358", "controluser", "queries_controversial.txt", "2"))
+	users.append(("janetheplummer123", "controltwo", "queries_controversial.txt", "2"))
+	users.append(("js4425947", "liberaluser", "queries_liberal.txt", "0"))
+	users.append(("jplum713", "conservativeuser", "queries_conservative.txt", "1"))
 
 	for u in users:
 		queries = getQueriesFromFile("queries/" + u[2])
@@ -94,7 +129,30 @@ def main():
 
 		login(driver, u[0], u[1])
 		for q in queries:
-			googleSearchAndClick(driver, q)
+			googleSearch(driver, q)
+			time.sleep(5)
+
+		driver.quit()
+		time.sleep(5)
+
+	driver.quit()
+
+def with_click_test():
+	#array of tuples (username, password, queryset, bias)
+	users = []
+
+	users.append(("moreese978", "controlclick", "queries_controversial.txt", "2"))
+	users.append(("emzhou01", "controlclicktwo", "queries_controversial.txt", "2"))
+	users.append(("lastova2017", "liberalclicker", "queries_liberal.txt", "0"))
+	users.append(("wg68309", "conservativeclicker", "queries_conservative.txt", "1"))
+
+	for u in users:
+		queries = getQueriesFromFile("queries/" + u[2])
+		driver = webdriver.Firefox()
+
+		login(driver, u[0], u[1])
+		for q in queries:
+			googleSearchAndClick(driver, q, u[3])
 			time.sleep(5)
 
 		driver.quit()
@@ -103,4 +161,5 @@ def main():
 	driver.quit()
 
 if __name__ == '__main__':
-	main()
+	#without_click_test()
+	with_click_test()
