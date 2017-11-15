@@ -7,6 +7,7 @@ import random
 import requests
 from bs4 import BeautifulSoup
 from sklearn.externals import joblib
+import datetime
 
 def getQueriesFromFile(filename):
 	with open(filename) as f:
@@ -24,7 +25,7 @@ def googleSearch(webdriver, query):
 	searchBox.send_keys(query)
 	searchBox.send_keys(Keys.ENTER)
 
-def googleSearchAndClick(webdriver, query, bias='2'):
+def googleSearchAndClick(webdriver, query, bias='2', user):
 	webdriver.get("http://google.com")
 	searchBox = webdriver.find_element_by_name("q")
 	searchBox.send_keys(query)
@@ -36,7 +37,7 @@ def googleSearchAndClick(webdriver, query, bias='2'):
 
 	link = None
 	url = None
-
+	click_count = 0
 	for i in range(1,6):
 
 		try:
@@ -61,13 +62,14 @@ def googleSearchAndClick(webdriver, query, bias='2'):
 		except:
 			print("didn't find link in second spot, skipping...")
 			print("--------------------------------")
-			return
+			continue
 
 		try:
 			#if user is control, click the link, otherwise classify
 			if bias is '2':
 				ActionChains(webdriver).move_to_element(link).click().perform()
 				print("clicked")
+				click_count += 1
 				time.sleep(2)
 				webdriver.back()
 				time.sleep(2)
@@ -85,6 +87,7 @@ def googleSearchAndClick(webdriver, query, bias='2'):
 				if bias == prediction:
 					ActionChains(webdriver).move_to_element(link).click().perform()
 					print("clicked")
+					click_count += 1
 					time.sleep(2)
 					webdriver.back()
 					time.sleep(2)
@@ -95,9 +98,13 @@ def googleSearchAndClick(webdriver, query, bias='2'):
 		except:
 			print("error: " + str(sys.exc_info()[0]))
 			print("--------------------------------")
+	with open("log.txt", "a") as logfile:
+		date = str(datetime.date.today())
+		logfile.write("{0}\t{1}\t{2}\t{3}\n".format(date, user, bias, click_count)
+)
 
 
-		
+
 
 def login(webdriver, email, password):
 	webdriver.get("http://google.com")
@@ -152,7 +159,7 @@ def with_click_test():
 
 		login(driver, u[0], u[1])
 		for q in queries:
-			googleSearchAndClick(driver, q, u[3])
+			googleSearchAndClick(driver, q, u[3], u[1])
 			time.sleep(5)
 
 		driver.quit()
