@@ -1,3 +1,5 @@
 bias_detector/**/articles*
 .DS_Store
 *.class
+bias_detector/webhose_news_formatted.csv
+bias_detector/temp*

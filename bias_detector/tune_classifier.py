@@ -8,12 +8,21 @@ from sklearn.externals import joblib
 #read in data
 print("Reading articles")
 data = []
+#kaggle - all the news
 for i in range(1,4):
     for line in open("all-the-news/articles_format" + str(i) + ".csv"):
         fields = line.strip().split("\t",1)
         if len(fields) < 2:
             continue
         data.append((fields[0], fields[1]))
+
+# webhose - english news
+for line in open("webhose_news_formatted.csv"):
+    fields = line.strip().split("\t",1)
+    if len(fields) < 2:
+        continue
+    data.append((fields[0], fields[1]))
+
 shuffle(data)
 
 split_index = 2000
